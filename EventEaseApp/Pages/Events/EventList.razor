@@ -1,0 +1,12 @@
+@page "/events"
+@inject EventService EventService
+
+<h3>All Events</h3>
+<ul>
+    @foreach (var ev in EventService.GetAllEvents())
+    {
+        <li>
+            <a href="@($"/events/{ev.Id}")">@ev.Name</a>
+        </li>
+    }
+</ul>

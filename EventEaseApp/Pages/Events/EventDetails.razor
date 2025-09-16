@@ -1,0 +1,30 @@
+@page "/events/{EventId:int:min(1)}"
+@inject EventService EventService
+
+<h3>Event Details</h3>
+
+@if (eventDetails != null)
+{
+    <p><strong>Name:</strong> @eventDetails.Name</p>
+    <p><strong>Date:</strong> @eventDetails.Date.ToShortDateString()</p>
+    <p><strong>Location:</strong> @eventDetails.Location</p>
+    <a href="@($"/events/{EventId}/register")">Register</a>
+}
+else
+{
+    <p>Event not found.</p>
+}
+<br />
+<a href="@($"/events")">Go back to Events</a>
+
+@code {
+    [Parameter]
+    public int EventId { get; set; }
+
+    private EventCard? eventDetails;
+
+    protected override void OnInitialized()
+    {
+        eventDetails = EventService.GetEventById(EventId);
+    }
+}

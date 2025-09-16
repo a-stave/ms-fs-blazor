@@ -1,0 +1,92 @@
+@page "/events/manage"
+@inject EventService EventService
+
+<h3>Event Manager</h3>
+
+<!-- Add Event Form -->
+<EditForm Model="@newEvent" OnValidSubmit="@AddEvent">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div>
+        <label>Name:</label>
+        <InputText @bind-Value="newEvent.Name" />
+    </div>
+    <div>
+        <label>Date:</label>
+        <InputDate @bind-Value="newEvent.Date" />
+    </div>
+    <div>
+        <label>Location:</label>
+        <InputText @bind-Value="newEvent.Location" />
+    </div>
+    <button type="submit">Add Event</button>
+</EditForm>
+
+<hr />
+
+<!-- Event List -->
+<h4>Current Events</h4>
+<ul>
+    @foreach (var ev in EventService.GetAllEvents())
+    {
+        <li>
+            <strong>@ev.Name</strong> (@ev.Date.ToShortDateString()) - @ev.Location
+            <a href="@($"/events/{ev.Id}")">View Details</a>
+            <button @onclick="() => DeleteEvent(ev.Id)">Delete</button>
+        </li>
+    }
+</ul>
+
+<select @bind="selectedEventId" @bind:event="onchange">
+    <option value="">-- Select an Event --</option>
+    @foreach (var ev in EventService.GetAllEvents())
+    {
+        <option value="@ev.Id">@ev.Name</option>
+    }
+</select>
+
+@if (selectedEvent != null)
+{
+    <h4>Event Details</h4>
+    <div>
+        <label>Name:</label>
+        <InputText @bind-Value="selectedEvent.Name"/>
+    </div>
+    <div>
+        <label>Date:</label>
+        <InputDate @bind-Value="selectedEvent.Date"/>
+    </div>
+    <div>
+        <label>Location:</label>
+        <InputText @bind-Value="selectedEvent.Location"/>
+    </div>
+}
+
+<br />
+<a href="@($"/events")">Go back to Events</a>
+
+@code {
+    private EventCard newEvent = new();
+
+    private void AddEvent()
+    {
+        EventService.AddEvent(newEvent);
+        newEvent = new(); // Reset form
+    }
+
+    private void DeleteEvent(int id)
+    {
+        EventService.DeleteEvent(id);
+    }
+
+    private EventCard? selectedEvent;
+
+    private int selectedEventId;
+
+    private void OnEventSelected(ChangeEventArgs e)
+    {
+        selectedEventId = int.Parse(e.Value?.ToString() ?? "0");
+        selectedEvent = EventService.GetEventById(selectedEventId);
+    }
+}
