@@ -1,10 +1,25 @@
 using System.ComponentModel.DataAnnotations;
+using Blazored.LocalStorage;
 
 namespace EventEaseApp
 {
     public class EventService
     {
-        private readonly List<EventCard> _events = new();
+        private readonly ILocalStorageService _localStorage;
+        private List<EventCard> _events = new();
+
+        public EventService(ILocalStorageService localStorage)
+        {
+            _localStorage = localStorage;
+        }
+
+        public async Task InitializeAsync()
+        {
+            var storedEvents = await _localStorage.GetItemAsync<List<EventCard>>("events");
+            if (storedEvents != null)
+                _events = storedEvents;
+        }
+
 
         public async Task<IEnumerable<EventCard>> GetAllEventsAsync(int page = 1, int pageSize = 20)
         {
@@ -20,10 +35,14 @@ namespace EventEaseApp
             return await Task.Run(() =>
                 _events.FirstOrDefault(e => e.Id == id));
         }
+        private async Task SaveEventsAsync()
+        {
+            await _localStorage.SetItemAsync("events", _events);
+        }
 
         public async Task<(bool Success, List<ValidationResult> Errors)> AddEventAsync(EventCard newEvent)
         {
-            return await Task.Run(() =>
+            return await Task.Run(async () =>
             {
                 var context = new ValidationContext(newEvent);
                 var results = new List<ValidationResult>();
@@ -35,6 +54,7 @@ namespace EventEaseApp
 
                 newEvent.Id = _events.Count > 0 ? _events.Max(e => e.Id) + 1 : 1;
                 _events.Add(newEvent);
+                await SaveEventsAsync();
 
                 return (true, results);
             });
@@ -47,10 +67,26 @@ namespace EventEaseApp
             if (eventToRemove != null)
             {
                 _events.Remove(eventToRemove);
+                await SaveEventsAsync();
                 return await Task.FromResult(true);
             }
 
             return await Task.FromResult(false);
+        }
+
+        public async Task RegisterUserAsync(int eventId, Registration registration)
+        {
+            var ev = _events.FirstOrDefault(e => e.Id == eventId);
+            if (ev != null)
+            {
+                ev.Attendees.Add(new Attendee
+                {
+                    Name = registration.Name,
+                    Email = registration.Email,
+                    IsPresent = false
+                });
+            }
+            await SaveEventsAsync();
         }
     }
 }

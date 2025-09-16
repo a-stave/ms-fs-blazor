@@ -14,3 +14,11 @@
         </article>
     </main>
 </div>
+@inject EventService EventService
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await EventService.InitializeAsync();
+    }
+}

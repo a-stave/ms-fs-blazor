@@ -18,6 +18,8 @@ namespace EventEaseApp
         [MinLength(1, ErrorMessage = "Location cannot be blank.")]
         public string Location { get; set; } = string.Empty;
 
+        public List<Attendee> Attendees { get; set; } = new();
+
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
             if (Date.Year < 2025 || Date.Year > 2030)

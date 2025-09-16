@@ -23,6 +23,20 @@ else
 <br />
 <a href="/events">Go back to Events</a>
 
+@if (eventDetails?.Attendees?.Count > 0)
+{
+    <h4>Attendance</h4>
+    <ul>
+        @foreach (var attendee in eventDetails.Attendees)
+        {
+            <li>
+                <input type="checkbox" @bind="attendee.IsPresent" />
+                @attendee.Name (@attendee.Email)
+            </li>
+        }
+    </ul>
+}
+
 @code {
     [Parameter]
     public int EventId { get; set; }

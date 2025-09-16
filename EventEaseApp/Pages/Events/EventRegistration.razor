@@ -1,13 +1,39 @@
-@page "/events/{EventId:int}/register"
+@page "/events/{EventId:int:min(1)}/register"
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject EventService EventService
+@using System.ComponentModel.DataAnnotations
 
 <h3>Register for Event @EventId</h3>
 
-<!-- Registration form goes here -->
+<EditForm Model="@registration" OnValidSubmit="@HandleSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
 
-<br />
-<a href="@($"/events")">Go back to Events</a>
+    <div>
+        <label>Name:</label>
+        <InputText @bind-Value="registration.Name" />
+    </div>
+    <div>
+        <label>Email:</label>
+        <InputText @bind-Value="registration.Email" />
+    </div>
+    <button type="submit">Register</button>
+</EditForm>
+
+@if (successMessage != null)
+{
+    <p style="color:green">@successMessage</p>
+}
 
 @code {
-    [Parameter]
-    public int EventId { get; set; }
+    [Parameter] public int EventId { get; set; }
+
+    private Registration registration = new();
+    private string? successMessage;
+
+    private async Task HandleSubmit()
+    {
+        await EventService.RegisterUserAsync(EventId, registration);
+        successMessage = "Registration successful!";
+    }
 }
