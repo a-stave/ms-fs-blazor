@@ -1,10 +1,11 @@
+@using System.ComponentModel.DataAnnotations
 @page "/events/manage"
 @inject EventService EventService
 
 <h3>Event Manager</h3>
 
 <!-- Add Event Form -->
-<EditForm Model="@newEvent" OnValidSubmit="@AddEvent">
+<EditForm Model="@newEvent" OnValidSubmit="@AddEventAsync">
     <DataAnnotationsValidator />
     <ValidationSummary />
 
@@ -23,24 +24,36 @@
     <button type="submit">Add Event</button>
 </EditForm>
 
+@if (addErrors.Count > 0)
+{
+    <ul style="color:red">
+        @foreach (var error in addErrors)
+        {
+            <li>@error.ErrorMessage</li>
+        }
+    </ul>
+}
+
 <hr />
 
 <!-- Event List -->
 <h4>Current Events</h4>
 <ul>
-    @foreach (var ev in EventService.GetAllEvents())
+    @foreach (var ev in events)
     {
         <li>
             <strong>@ev.Name</strong> (@ev.Date.ToShortDateString()) - @ev.Location
             <a href="@($"/events/{ev.Id}")">View Details</a>
-            <button @onclick="() => DeleteEvent(ev.Id)">Delete</button>
+            <button @onclick="() => DeleteEventAsync(ev.Id)">Delete</button>
         </li>
     }
 </ul>
 
-<select @bind="selectedEventId" @bind:event="onchange">
+<!-- Edit Existing Events -->
+<h4>Edit Events</h4>
+<select @onchange="OnEventSelected">
     <option value="">-- Select an Event --</option>
-    @foreach (var ev in EventService.GetAllEvents())
+    @foreach (var ev in events)
     {
         <option value="@ev.Id">@ev.Name</option>
     }
@@ -48,45 +61,103 @@
 
 @if (selectedEvent != null)
 {
-    <h4>Event Details</h4>
+    <h4><br />Event Details</h4>
     <div>
         <label>Name:</label>
-        <InputText @bind-Value="selectedEvent.Name"/>
+        <InputText @bind-Value="selectedEvent.Name" />
     </div>
     <div>
         <label>Date:</label>
-        <InputDate @bind-Value="selectedEvent.Date"/>
+        <InputDate @bind-Value="selectedEvent.Date" />
     </div>
     <div>
         <label>Location:</label>
-        <InputText @bind-Value="selectedEvent.Location"/>
+        <InputText @bind-Value="selectedEvent.Location" />
     </div>
 }
 
+<!-- Double binding is unsuitable for a form, since the changes occur in real time rather
+than when you hit submit or cancel...-->
+@*@if (selectedEvent != null)
+{
+    <h4>Edit Event</h4>
+    <EditForm Model="@selectedEvent" OnValidSubmit="@SaveEventAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div>
+            <label>Name:</label>
+            <InputText @bind-Value="selectedEvent.Name" />
+        </div>
+        <div>
+            <label>Date:</label>
+            <InputDate @bind-Value="selectedEvent.Date" />
+        </div>
+        <div>
+            <label>Location:</label>
+            <InputText @bind-Value="selectedEvent.Location" />
+        </div>
+        <button type="submit">Save Changes</button>
+    </EditForm>
+}*@
+
 <br />
-<a href="@($"/events")">Go back to Events</a>
+<a href="/events">Go back to Events</a>
 
 @code {
     private EventCard newEvent = new();
-
-    private void AddEvent()
-    {
-        EventService.AddEvent(newEvent);
-        newEvent = new(); // Reset form
-    }
-
-    private void DeleteEvent(int id)
-    {
-        EventService.DeleteEvent(id);
-    }
+    private List<EventCard> events = new();
+    private List<ValidationResult> addErrors = new();
 
     private EventCard? selectedEvent;
-
     private int selectedEventId;
 
-    private void OnEventSelected(ChangeEventArgs e)
+    protected override async Task OnInitializedAsync()
     {
-        selectedEventId = int.Parse(e.Value?.ToString() ?? "0");
-        selectedEvent = EventService.GetEventById(selectedEventId);
+        newEvent.Date = DateTime.Today;
+        await LoadEventsAsync();
+    }
+
+    private async Task LoadEventsAsync()
+    {
+        events = (await EventService.GetAllEventsAsync()).ToList();
+    }
+
+    private async Task AddEventAsync()
+    {
+        var result = await EventService.AddEventAsync(newEvent);
+        if (result.Success)
+        {
+            newEvent = new();
+            {
+                newEvent.Date = DateTime.Today;
+            }
+            addErrors.Clear();
+            await LoadEventsAsync();
+        }
+        else
+        {
+            addErrors = result.Errors;
+        }
+    }
+
+    private async Task DeleteEventAsync(int id)
+    {
+        await EventService.DeleteEventAsync(id);
+        await LoadEventsAsync();
+    }
+
+    private async Task OnEventSelected(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        if (int.TryParse(value, out int id))
+        {
+            selectedEventId = id;
+            selectedEvent = await EventService.GetEventByIdAsync(id);
+        }
+        else
+        {
+            selectedEvent = null;
+        }
     }
 }

@@ -2,11 +2,66 @@
 @inject EventService EventService
 
 <h3>All Events</h3>
-<ul>
-    @foreach (var ev in EventService.GetAllEvents())
+
+@if (isLoading)
+{
+    <p>Loading events...</p>
+}
+else if (pagedEvents.Count == 0)
+{
+    <p>No events found.</p>
+}
+else
+{
+    <ul>
+        @foreach (var ev in pagedEvents)
+        {
+            <li>
+                <a href="@($"/events/{ev.Id}")">@ev.Name</a>
+            </li>
+        }
+    </ul>
+
+    <div>
+        <button @onclick="PreviousPage" disabled="@(_currentPage == 1)">Previous</button>
+        <span>Page @_currentPage</span>
+        <button @onclick="NextPage" disabled="@(!_hasMore)">Next</button>
+    </div>
+}
+
+@code {
+    private List<EventCard> pagedEvents = new();
+    private int _currentPage = 1;
+    private const int PageSize = 20;
+    private bool isLoading = true;
+    private bool _hasMore = false;
+
+    protected override async Task OnInitializedAsync()
     {
-        <li>
-            <a href="@($"/events/{ev.Id}")">@ev.Name</a>
-        </li>
+        await LoadEventsAsync();
     }
-</ul>
+
+    private async Task LoadEventsAsync()
+    {
+        isLoading = true;
+        var events = await EventService.GetAllEventsAsync(_currentPage, PageSize);
+        pagedEvents = events.ToList();
+        _hasMore = pagedEvents.Count == PageSize;
+        isLoading = false;
+    }
+
+    private async Task NextPage()
+    {
+        _currentPage++;
+        await LoadEventsAsync();
+    }
+
+    private async Task PreviousPage()
+    {
+        if (_currentPage > 1)
+        {
+            _currentPage--;
+            await LoadEventsAsync();
+        }
+    }
+}
